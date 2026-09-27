@@ -36,6 +36,29 @@ void populateDebugMessengerCreateInfo(
     createInfo.pfnUserCallback = debugCallback;
 }
 
+VkResult createDebugUtilsMessenger(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* createInfo,
+    const VkAllocationCallbacks* allocator, VkDebugUtilsMessengerEXT* debugMessenger) {
+    auto function = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    
+    if(function != nullptr) {
+        return function(instance, createInfo, allocator, debugMessenger);
+    }
+
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+void destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* allocator) {
+    auto function = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    
+    if (function != nullptr) {
+        function(instance, debugMessenger, allocator);
+    }
+}
+
+
+
 int main() {
     VkApplicationInfo applicationInfo{};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -45,7 +68,7 @@ int main() {
     applicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     applicationInfo.apiVersion = VK_API_VERSION_1_3;
 
-    const char* validationLayer[] = {"VK_LAYER_KHRONOS_validation"};
+    const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
     const char* requiredExtensions[] = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
 
 
@@ -60,7 +83,7 @@ int main() {
     instanceCreateInfo.pNext = &debugCreateInfo;
 
     instanceCreateInfo.enabledLayerCount = 1;
-    instanceCreateInfo.ppEnabledLayerNames = validationLayer;
+    instanceCreateInfo.ppEnabledLayerNames = validationLayers;
 
     VkInstance instance{};
 
@@ -71,7 +94,17 @@ int main() {
         return 1;
     }
 
+    VkDebugUtilsMessengerEXT debugMessenger{};
+
+    if(createDebugUtilsMessenger(instance, &debugCreateInfo, nullptr, &debugMessenger) != VK_SUCCESS) {
+        std::cerr <<"Failed to cretae debug messenger\n";
+        vkDestroyInstance(instance, nullptr);
+        return 1;
+    }
+
     std::cout << "Vulkan instance created successfully\n";
+
+    destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
 
     vkDestroyInstance(instance, nullptr);
 
