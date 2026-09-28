@@ -1,5 +1,6 @@
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <iostream>
-#include <vulkan/vulkan.h>
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -60,6 +61,22 @@ void destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT de
 
 
 int main() {
+    if(!glfwInit()) {
+        std::cerr << "Failed to Initialize GLFW\n";
+        return 1;
+    }
+
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "My Vulkan Engine", nullptr, nullptr);
+    
+    if(window == nullptr) {
+        std::cerr << "Failed to create GLFW window\n";
+        glfwTerminate();
+        return 1;
+    }
+
     VkApplicationInfo applicationInfo{};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     applicationInfo.pApplicationName = "My Vulkan Engine";
@@ -107,6 +124,13 @@ int main() {
     destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
 
     vkDestroyInstance(instance, nullptr);
+
+    while(!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+    }
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
 
     return 0;
 }
