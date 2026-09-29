@@ -1,6 +1,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <vector>
+
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -86,8 +88,11 @@ int main() {
     applicationInfo.apiVersion = VK_API_VERSION_1_3;
 
     const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
-    const char* requiredExtensions[] = {VK_EXT_DEBUG_UTILS_EXTENSION_NAME};
 
+    uint32_t glfwExtensionCount = 0;
+    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     VkInstanceCreateInfo instanceCreateInfo{};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -95,8 +100,8 @@ int main() {
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     populateDebugMessengerCreateInfo(debugCreateInfo);
 
-    instanceCreateInfo.enabledExtensionCount = 1;
-    instanceCreateInfo.ppEnabledExtensionNames = requiredExtensions;
+    instanceCreateInfo.enabledExtensionCount = requiredExtensions.size();
+    instanceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
     instanceCreateInfo.pNext = &debugCreateInfo;
 
     instanceCreateInfo.enabledLayerCount = 1;
@@ -119,15 +124,31 @@ int main() {
         return 1;
     }
 
+    VkSurfaceKHR surface{};
+
+    if(glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+        std::cerr << "Failed to create Window Surface";
+
+        destroyDebugUtilsMessenger(instance, debugMessenger,nullptr);
+
+        vkDestroyInstance(instance, nullptr);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+
+        return 1;
+    }
+
     std::cout << "Vulkan instance created successfully\n";
-
-    destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
-
-    vkDestroyInstance(instance, nullptr);
 
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();
     }
+    
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+
+    destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
+
+    vkDestroyInstance(instance, nullptr);
 
     glfwDestroyWindow(window);
     glfwTerminate();
