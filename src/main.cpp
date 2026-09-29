@@ -137,13 +137,40 @@ int main() {
 
         return 1;
     }
+    uint32_t physicalDeviceCount = 0;
+
+    VkResult enumerateResult = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+
+    if(enumerateResult != VK_SUCCESS || physicalDeviceCount == 0) {
+        std::cerr << "Failed to find any Vulkan-compatble GPU\n";
+
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
+        vkDestroyInstance(instance, nullptr);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+
+        return 1;
+    }
+
+    std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+
+    vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
+
+    for (VkPhysicalDevice device : physicalDevices) {
+        VkPhysicalDeviceProperties deviceProperties{};
+        
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        
+        std::cout << "Found GPU: " << deviceProperties.deviceName << '\n';
+    }
 
     std::cout << "Vulkan instance created successfully\n";
 
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();
     }
-    
+
     vkDestroySurfaceKHR(instance, surface, nullptr);
 
     destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
