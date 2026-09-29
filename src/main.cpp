@@ -157,13 +157,32 @@ int main() {
 
     vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
 
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
     for (VkPhysicalDevice device : physicalDevices) {
         VkPhysicalDeviceProperties deviceProperties{};
         
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
         
         std::cout << "Found GPU: " << deviceProperties.deviceName << '\n';
+
+        if(physicalDevice == VK_NULL_HANDLE && deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+            physicalDevice = device;
+        }
     }
+
+    if(physicalDevice == VK_NULL_HANDLE) {
+        std::cerr << "Failed to find a discrete GPU";
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
+        vkDestroyInstance(instance, nullptr);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+
+        return 1;
+    }
+
+    std::cout << "Selected discrete GPU\n";
 
     std::cout << "Vulkan instance created successfully\n";
 
