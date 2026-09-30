@@ -3,6 +3,18 @@
 #include <iostream>
 #include <vector>
 
+struct QueueFamilyIndices {
+    uint32_t graphicsFamily = 0;
+    uint32_t presentFamily = 0;
+
+    bool hasGraphicsFamily = false;
+    bool hasPresentFamily = false;
+
+    bool isComplete() const {
+        return hasGraphicsFamily && hasPresentFamily;
+    }
+};
+
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -60,7 +72,41 @@ void destroyDebugUtilsMessenger(VkInstance instance, VkDebugUtilsMessengerEXT de
     }
 }
 
+QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
+    QueueFamilyIndices indices;
 
+    uint32_t queueFamilyCount = 0;
+
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+    for(uint32_t i = 0; i < queueFamilyCount; i++) {
+        const VkQueueFamilyProperties& queueFamily = queueFamilies[i];
+
+        if(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            indices.graphicsFamily = i;
+            indices.hasGraphicsFamily = true;
+        }
+
+        VkBool32 presentSupport = VK_FALSE;
+
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+
+        if(presentSupport == VK_TRUE) {
+            indices.presentFamily = i;
+            indices.hasPresentFamily = true;
+        }
+
+        if(indices.isComplete()) {
+            break;
+        }
+    }
+
+    return indices;
+}
 
 int main() {
     if(!glfwInit()) {
@@ -181,6 +227,30 @@ int main() {
 
         return 1;
     }
+
+    QueueFamilyIndices queueFamilies = findQueueFamilies(physicalDevice, surface);
+
+    if (!queueFamilies.isComplete()) {
+        std::cerr << "Failed to find required queue families\n";
+
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
+        vkDestroyInstance(instance, nullptr);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+
+        return 1;
+    }
+
+    std::cout
+        << "Graphics queue family: "
+        << queueFamilies.graphicsFamily
+        << '\n';
+
+    std::cout
+        << "Present queue family: "
+        << queueFamilies.presentFamily
+        << '\n';
 
     std::cout << "Selected discrete GPU\n";
 
