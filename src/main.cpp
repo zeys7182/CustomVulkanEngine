@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
+#include <set>
 
 struct QueueFamilyIndices {
     uint32_t graphicsFamily = 0;
@@ -242,6 +243,90 @@ int main() {
         return 1;
     }
 
+    std::set<uint32_t> uniqueQueueFamilies = {
+    queueFamilies.graphicsFamily,
+    queueFamilies.presentFamily
+    };
+
+    float queuePriority = 1.0f;
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+    for (uint32_t queueFamily : uniqueQueueFamilies) {
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+
+        queueCreateInfo.sType =
+            VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+
+        queueCreateInfo.queueFamilyIndex = queueFamily;
+        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    const char* deviceExtensions[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    VkPhysicalDeviceFeatures deviceFeatures{};
+
+    VkDeviceCreateInfo deviceCreateInfo{};
+
+    deviceCreateInfo.sType =
+        VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+    deviceCreateInfo.queueCreateInfoCount =
+        static_cast<uint32_t>(queueCreateInfos.size());
+
+    deviceCreateInfo.pQueueCreateInfos =
+        queueCreateInfos.data();
+
+    deviceCreateInfo.pEnabledFeatures =
+        &deviceFeatures;
+
+    deviceCreateInfo.enabledExtensionCount = 1;
+    deviceCreateInfo.ppEnabledExtensionNames =
+        deviceExtensions;
+
+    VkDevice device{};
+
+    if (vkCreateDevice(
+            physicalDevice,
+            &deviceCreateInfo,
+            nullptr,
+            &device
+        ) != VK_SUCCESS) {
+        std::cerr << "Failed to create logical device\n";
+
+        vkDestroySurfaceKHR(instance, surface, nullptr);
+        destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
+        vkDestroyInstance(instance, nullptr);
+        glfwDestroyWindow(window);
+        glfwTerminate();
+
+        return 1;
+    }
+
+    VkQueue graphicsQueue{};
+    VkQueue presentQueue{};
+
+    vkGetDeviceQueue(
+        device,
+        queueFamilies.graphicsFamily,
+        0,
+        &graphicsQueue
+    );
+
+    vkGetDeviceQueue(
+        device,
+        queueFamilies.presentFamily,
+        0,
+        &presentQueue
+    );
+
+    std::cout << "Logical device created\n";
+
     std::cout
         << "Graphics queue family: "
         << queueFamilies.graphicsFamily
@@ -259,6 +344,9 @@ int main() {
     while(!glfwWindowShouldClose(window)) {
         glfwPollEvents();
     }
+
+    vkDeviceWaitIdle(device);
+    vkDestroyDevice(device, nullptr);
 
     vkDestroySurfaceKHR(instance, surface, nullptr);
 
