@@ -616,6 +616,32 @@ int main() {
         return 1;
     }
 
+    std::vector<VkFramebuffer> swapChainFramebuffers(swapChainImageViews.size());
+
+    for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
+        VkImageView attachments[] = { swapChainImageViews[i]};
+
+        VkFramebufferCreateInfo framebufferCreateInfo{};
+
+        framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+
+        framebufferCreateInfo.renderPass = renderPass;
+
+        framebufferCreateInfo.attachmentCount = 1;
+        framebufferCreateInfo.pAttachments = attachments;
+
+        framebufferCreateInfo.width = extent.width;
+        framebufferCreateInfo.height = extent.height;
+        framebufferCreateInfo.layers = 1;
+
+        if (vkCreateFramebuffer(device, &framebufferCreateInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
+            std::cerr << "Failed to create framebuffer\n";
+            return 1;
+        }
+    }
+
+    std::cout << "Framebuffers created\n";
+
     std::cout << "Image views and render pass created\n";
 
     std::cout << "Swapchain created with " << swapChainImages.size() << " images\n";
@@ -635,6 +661,10 @@ int main() {
     }
 
     vkDeviceWaitIdle(device);
+
+    for (VkFramebuffer framebuffer : swapChainFramebuffers) {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
 
     vkDestroyRenderPass(device, renderPass, nullptr);
 
