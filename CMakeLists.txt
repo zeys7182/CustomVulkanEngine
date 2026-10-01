@@ -23,6 +23,7 @@ FetchContent_MakeAvailable(glfw)
 
 add_executable(MyVulkanEngine
     src/main.cpp
+    src/engine/VulkanContext.cpp
 )
 
 target_link_libraries(MyVulkanEngine
