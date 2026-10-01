@@ -475,6 +475,46 @@ void VulkanContext::createFramebuffers() {
     }
 }
 
+void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
+    auto* context = static_cast<VulkanContext*>(glfwGetWindowUserPointer(window));
+    context->framebufferResized = true;
+}
+
+void VulkanContext::recreateSwapchain() {
+    int width = 0;
+    int height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(window, &width, &height);
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(device);
+
+    if (!commandBuffers.empty()) vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    commandBuffers.clear();
+
+    for (VkFramebuffer framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
+    swapChainFramebuffers.clear();
+
+    vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+    vkDestroyRenderPass(device, renderPass, nullptr);
+
+    for (VkImageView imageView : swapChainImageViews) vkDestroyImageView(device, imageView, nullptr);
+    swapChainImageViews.clear();
+
+    vkDestroySwapchainKHR(device, swapChain, nullptr);
+
+    createSwapchain();
+    createImageViews();
+    createRenderPass();
+    createFramebuffers();
+    createGraphicsPipeline();
+    createCommandBuffers();
+}
+
 VulkanContext::VulkanContext() {
     initializeWindow();
     initializeVulkan();
@@ -494,7 +534,7 @@ void VulkanContext::initializeWindow() {
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     window = glfwCreateWindow(1280, 720, "My Vulkan Engine", nullptr, nullptr);
 
@@ -502,6 +542,10 @@ void VulkanContext::initializeWindow() {
         glfwTerminate();
         throw std::runtime_error("Failed to create GLFW window");
     }
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+
 }
 
 void VulkanContext::createSurface() {
@@ -651,9 +695,13 @@ void VulkanContext::mainLoop() {
 
         VkResult acquireResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
 
-        if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
-            throw std::runtime_error("Failed to acquire swapchain image");
+        if (acquireResult == VK_ERROR_OUT_OF_DATE_KHR || framebufferResized) {
+            framebufferResized = false;
+            recreateSwapchain();
+            continue;
         }
+
+        if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) throw std::runtime_error("Failed to acquire swapchain image");
 
         if (vkResetFences(device, 1, &inFlightFence) != VK_SUCCESS) {
             throw std::runtime_error("Failed to reset fence");
@@ -687,9 +735,13 @@ void VulkanContext::mainLoop() {
 
         VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-        if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR) {
-            throw std::runtime_error("Failed to present swapchain image");
+        if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
+            framebufferResized = false;
+            recreateSwapchain();
+            continue;
         }
+
+        if (presentResult != VK_SUCCESS) throw std::runtime_error("Failed to present swapchain image");
     }
 }
 

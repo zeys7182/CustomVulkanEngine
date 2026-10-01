@@ -52,6 +52,7 @@ private:
 
 private:
     GLFWwindow* window = nullptr;
+    bool framebufferResized = false;
 
     VkInstance instance = VK_NULL_HANDLE;
     VkDebugUtilsMessengerEXT debugMessenger = VK_NULL_HANDLE;
@@ -86,4 +87,7 @@ private:
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
     VkFence inFlightFence = VK_NULL_HANDLE;
-};
+
+    void recreateSwapchain();
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
+}; 
