@@ -785,6 +785,84 @@ int main() {
     vkDestroyShaderModule(device, fragmentShaderModule, nullptr);
     vkDestroyShaderModule(device, vertexShaderModule, nullptr);
 
+    VkCommandPoolCreateInfo commandPoolInfo{};
+    commandPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    commandPoolInfo.queueFamilyIndex = queueFamilies.graphicsFamily;
+
+    VkCommandPool commandPool{};
+
+    if (vkCreateCommandPool(device, &commandPoolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create command pool");
+    }
+
+    VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+    commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    commandBufferAllocateInfo.commandPool = commandPool;
+    commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    commandBufferAllocateInfo.commandBufferCount = static_cast<uint32_t>(swapChainFramebuffers.size());
+
+    std::vector<VkCommandBuffer> commandBuffers(swapChainFramebuffers.size());
+
+    if (vkAllocateCommandBuffers(device, &commandBufferAllocateInfo, commandBuffers.data()) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to allocate command buffers");
+    }
+
+    for (size_t i = 0; i < commandBuffers.size(); ++i) {
+        VkCommandBufferBeginInfo commandBufferBeginInfo{};
+        commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        if (vkBeginCommandBuffer(commandBuffers[i], &commandBufferBeginInfo) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to begin recording command buffer");
+        }
+
+        VkRenderPassBeginInfo renderPassBeginInfo{};
+        renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassBeginInfo.renderPass = renderPass;
+        renderPassBeginInfo.framebuffer = swapChainFramebuffers[i];
+        renderPassBeginInfo.renderArea.offset = { 0, 0 };
+        renderPassBeginInfo.renderArea.extent = extent;
+
+        VkClearValue clearColor = { { 0.05f, 0.05f, 0.1f, 1.0f } };
+
+        renderPassBeginInfo.clearValueCount = 1;
+        renderPassBeginInfo.pClearValues = &clearColor;
+
+        vkCmdBeginRenderPass(commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+        vkCmdEndRenderPass(commandBuffers[i]);
+
+        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to record command buffer");
+        }
+    }
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkSemaphore imageAvailableSemaphore{};
+    VkSemaphore renderFinishedSemaphore{};
+    VkFence inFlightFence{};
+
+    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create image available semaphore");
+    }
+
+    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create render finished semaphore");
+    }
+
+    if (vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create in-flight fence");
+    }
+
+    std::cout << "Command buffers recorded\n";
+
     std::cout << "Graphics pipeline created\n";
 
     std::cout << "Framebuffers created\n";
@@ -803,11 +881,73 @@ int main() {
 
     std::cout << "Vulkan instance created successfully\n";
 
-    while(!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
+
+        if (vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to wait for fence");
+        }
+
+        uint32_t imageIndex = 0;
+
+        VkResult acquireResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+        if (acquireResult != VK_SUCCESS && acquireResult != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("Failed to acquire swapchain image");
+        }
+
+        if (vkResetFences(device, 1, &inFlightFence) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to reset fence");
+        }
+
+        VkSemaphore waitSemaphores[] = {
+            imageAvailableSemaphore
+        };
+
+        VkPipelineStageFlags waitStages[] = {
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+        };
+
+        VkSemaphore signalSemaphores[] = {
+            renderFinishedSemaphore
+        };
+
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores = signalSemaphores;
+
+        if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFence) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to submit draw command buffer");
+        }
+
+        VkPresentInfoKHR presentInfo{};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapChain;
+        presentInfo.pImageIndices = &imageIndex;
+
+        VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+        if (presentResult != VK_SUCCESS && presentResult != VK_SUBOPTIMAL_KHR) {
+            throw std::runtime_error("Failed to present swapchain image");
+        }
     }
 
     vkDeviceWaitIdle(device);
+
+    vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+    vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+    vkDestroyFence(device, inFlightFence, nullptr);
+
+    vkDestroyCommandPool(device, commandPool, nullptr);
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
 
