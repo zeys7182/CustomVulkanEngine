@@ -50,6 +50,14 @@ private:
     void createCommandBuffers();
     void createSyncObjects();
 
+    void createDepthResources();
+    VkFormat findDepthFormat();
+    bool hasStencilComponent(VkFormat format);
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    
 private:
     GLFWwindow* window = nullptr;
     bool framebufferResized = false;
@@ -87,6 +95,10 @@ private:
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
     VkFence inFlightFence = VK_NULL_HANDLE;
+
+    VkImage depthImage = VK_NULL_HANDLE;
+    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+    VkImageView depthImageView = VK_NULL_HANDLE;
 
     void recreateSwapchain();
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
