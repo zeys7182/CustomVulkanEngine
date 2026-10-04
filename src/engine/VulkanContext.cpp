@@ -221,7 +221,8 @@ void VulkanContext::createCommandBuffers() {
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
         vkCmdEndRenderPass(commandBuffers[i]);
 
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -525,6 +526,14 @@ void VulkanContext::recreateSwapchain() {
     for (VkFramebuffer framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
     swapChainFramebuffers.clear();
 
+    if (depthImageView != VK_NULL_HANDLE) vkDestroyImageView(device, depthImageView, nullptr);
+    if (depthImage != VK_NULL_HANDLE) vkDestroyImage(device, depthImage, nullptr);
+    if (depthImageMemory != VK_NULL_HANDLE) vkFreeMemory(device, depthImageMemory, nullptr);
+
+    depthImageView = VK_NULL_HANDLE;
+    depthImage = VK_NULL_HANDLE;
+    depthImageMemory = VK_NULL_HANDLE;
+
     vkDestroyImageView(device, depthImageView, nullptr);
     vkDestroyImage(device, depthImage, nullptr);
     vkFreeMemory(device, depthImageMemory, nullptr);
@@ -719,6 +728,30 @@ void VulkanContext::createVertexBuffer() {
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
 
+void VulkanContext::createIndexBuffer() {
+    const std::vector<uint16_t> indices = {0, 1, 2};
+    indexCount = static_cast<uint32_t>(indices.size());
+
+    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+    VkBuffer stagingBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
+
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data = nullptr;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    std::memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
 
 
 VulkanContext::VulkanContext() {
@@ -840,6 +873,7 @@ void VulkanContext::initializeVulkan() {
     createGraphicsPipeline();
     createCommandPool();
     createVertexBuffer();
+    createIndexBuffer();
     createCommandBuffers();
     createSyncObjects();
 }
@@ -955,67 +989,43 @@ void VulkanContext::mainLoop() {
 }
 
 void VulkanContext::cleanup() {
+    if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
 
-    if (device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(device);
-    }
+    if (renderFinishedSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+    if (imageAvailableSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
+    if (inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, inFlightFence, nullptr);
 
-    if (renderFinishedSemaphore != VK_NULL_HANDLE) {
-        vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
-    }
+    if (commandPool != VK_NULL_HANDLE) vkDestroyCommandPool(device, commandPool, nullptr);
 
-    if (imageAvailableSemaphore != VK_NULL_HANDLE) {
-        vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
-    }
+    if (indexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, indexBuffer, nullptr);
+    if (indexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, indexBufferMemory, nullptr);
+    if (vertexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, vertexBuffer, nullptr);
+    if (vertexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, vertexBufferMemory, nullptr);
 
-    if (inFlightFence != VK_NULL_HANDLE) {
-        vkDestroyFence(device, inFlightFence, nullptr);
-    }
+    if (graphicsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    if (pipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
-    if (commandPool != VK_NULL_HANDLE) {
-        vkDestroyCommandPool(device, commandPool, nullptr);
-    }
+    for (VkFramebuffer framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
 
-    if (graphicsPipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(device, graphicsPipeline, nullptr);
-    }
+    if (depthImageView != VK_NULL_HANDLE) vkDestroyImageView(device, depthImageView, nullptr);
+    if (depthImage != VK_NULL_HANDLE) vkDestroyImage(device, depthImage, nullptr);
+    if (depthImageMemory != VK_NULL_HANDLE) vkFreeMemory(device, depthImageMemory, nullptr);
 
-    if (pipelineLayout != VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
-    }
+    if (renderPass != VK_NULL_HANDLE) vkDestroyRenderPass(device, renderPass, nullptr);
 
-    for (VkFramebuffer framebuffer : swapChainFramebuffers) {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
-    }
+    for (VkImageView imageView : swapChainImageViews) vkDestroyImageView(device, imageView, nullptr);
 
-    if (renderPass != VK_NULL_HANDLE) {
-        vkDestroyRenderPass(device, renderPass, nullptr);
-    }
+    if (swapChain != VK_NULL_HANDLE) vkDestroySwapchainKHR(device, swapChain, nullptr);
 
-    for (VkImageView imageView : swapChainImageViews) {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
+    if (device != VK_NULL_HANDLE) vkDestroyDevice(device, nullptr);
 
-    if (device != VK_NULL_HANDLE) {
-        vkDeviceWaitIdle(device);
-        vkDestroyDevice(device, nullptr);
-    }
+    if (surface != VK_NULL_HANDLE) vkDestroySurfaceKHR(instance, surface, nullptr);
 
-    if (surface != VK_NULL_HANDLE) {
-        vkDestroySurfaceKHR(instance, surface, nullptr);
-    }
+    if (debugMessenger != VK_NULL_HANDLE) destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
 
-    if (debugMessenger != VK_NULL_HANDLE) {
-        destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
-    }
+    if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
 
-    if (instance != VK_NULL_HANDLE) {
-        vkDestroyInstance(instance, nullptr);
-    }
-
-    if (window != nullptr) {
-        glfwDestroyWindow(window);
-    }
+    if (window != nullptr) glfwDestroyWindow(window);
 
     glfwTerminate();
 }

@@ -105,6 +105,10 @@ private:
     VkBuffer vertexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
 
+    VkBuffer indexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+    uint32_t indexCount = 0;
+
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
     VkFence inFlightFence = VK_NULL_HANDLE;
@@ -114,5 +118,8 @@ private:
     VkImageView depthImageView = VK_NULL_HANDLE;
 
     void recreateSwapchain();
+
+    void createIndexBuffer();
+
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 }; 
