@@ -21,13 +21,12 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(glfw)
 
+FetchContent_Declare(glm URL https://github.com/g-truc/glm/archive/refs/tags/1.0.1.zip)
+FetchContent_MakeAvailable(glm)
+
 add_executable(MyVulkanEngine
     src/main.cpp
     src/engine/VulkanContext.cpp
 )
 
-target_link_libraries(MyVulkanEngine
-    PRIVATE
-        Vulkan::Vulkan
-        glfw
-)
+target_link_libraries(MyVulkanEngine PRIVATE Vulkan::Vulkan glfw glm::glm)

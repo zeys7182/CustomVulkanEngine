@@ -6,6 +6,11 @@
 #include <cstdint>
 #include <vector>
 
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
+#include <glm/mat4x4.hpp>
+
 struct QueueFamilyIndices {
     uint32_t graphicsFamily = 0;
     uint32_t presentFamily = 0;
@@ -24,10 +29,16 @@ struct SwapChainSupportDetails {
 };
 
 struct Vertex {
-    float position[2];
+    float position[3];
     float color[3];
 };
 
+
+struct UniformBufferObject {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 projection;
+};
 
 class VulkanContext {
 public:
@@ -67,6 +78,12 @@ private:
     void createVertexBuffer();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize size);
+
+    void createDescriptorSetLayout();
+    void createUniformBuffer();
+    void createDescriptorPool();
+    void createDescriptorSet();
+    void updateUniformBuffer();
     
 private:
     GLFWwindow* window = nullptr;
@@ -99,6 +116,10 @@ private:
     VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
     VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
+    VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+    VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+
     VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers;
 
@@ -108,6 +129,10 @@ private:
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
     uint32_t indexCount = 0;
+
+    VkBuffer uniformBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory uniformBufferMemory = VK_NULL_HANDLE;
+    void* uniformBufferMapped = nullptr;
 
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
     VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
