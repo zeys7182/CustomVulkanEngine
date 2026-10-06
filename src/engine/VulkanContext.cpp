@@ -804,13 +804,17 @@ void VulkanContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer
 
 void VulkanContext::createVertexBuffer() {
     const std::vector<Vertex> vertices = {
-        {{0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}
+        {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 0.0f}},
+        {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f}},
+        {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f}},
+        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+        {{-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 0.0f}}
     };
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
 
@@ -830,11 +834,18 @@ void VulkanContext::createVertexBuffer() {
 }
 
 void VulkanContext::createIndexBuffer() {
-    const std::vector<uint16_t> indices = {0, 1, 2};
+    const std::vector<uint16_t> indices = {
+        0, 1, 2, 2, 3, 0,
+        1, 5, 6, 6, 2, 1,
+        5, 4, 7, 7, 6, 5,
+        4, 0, 3, 3, 7, 4,
+        3, 2, 6, 6, 7, 3,
+        4, 5, 1, 1, 0, 4
+    };
+
     indexCount = static_cast<uint32_t>(indices.size());
 
     VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
 
