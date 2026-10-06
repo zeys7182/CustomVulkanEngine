@@ -10,6 +10,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 
 struct QueueFamilyIndices {
     uint32_t graphicsFamily = 0;
@@ -84,8 +85,11 @@ private:
     void createDescriptorPool();
     void createDescriptorSet();
     void updateUniformBuffer();
+    void processInput(float deltaTime);
     
 private:
+    glm::vec3 cameraPosition{2.0f, 2.0f, 2.0f};
+    
     GLFWwindow* window = nullptr;
     bool framebufferResized = false;
 

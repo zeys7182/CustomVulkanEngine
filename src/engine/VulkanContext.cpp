@@ -225,11 +225,26 @@ void VulkanContext::updateUniformBuffer() {
 
     UniformBufferObject uniformBufferObject{};
     uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    uniformBufferObject.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    uniformBufferObject.view = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
     uniformBufferObject.projection[1][1] *= -1.0f;
 
     std::memcpy(uniformBufferMapped, &uniformBufferObject, sizeof(uniformBufferObject));
+}
+
+void VulkanContext::processInput(float deltaTime) {
+    const float cameraSpeed = 2.5f * deltaTime;
+    const glm::vec3 target{0.0f, 0.0f, 0.0f};
+    const glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
+    const glm::vec3 forward = glm::normalize(target - cameraPosition);
+    const glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPosition += forward * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPosition -= forward * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPosition -= right * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPosition += right * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPosition += worldUp * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPosition -= worldUp * cameraSpeed;
 }
 
 void VulkanContext::createCommandPool() {
@@ -1045,6 +1060,12 @@ void VulkanContext::mainLoop() {
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
+        static auto lastFrameTime = std::chrono::high_resolution_clock::now();
+        auto currentFrameTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentFrameTime - lastFrameTime).count();
+        lastFrameTime = currentFrameTime;
+        processInput(deltaTime);
+
         if (vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
             throw std::runtime_error("Failed to wait for fence");
         }
@@ -1123,7 +1144,12 @@ void VulkanContext::cleanup() {
     if (graphicsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, graphicsPipeline, nullptr);
     if (pipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 
+    if (descriptorPool != VK_NULL_HANDLE) vkDestroyDescriptorPool(device, descriptorPool, nullptr);
     if (descriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
+
+    if (uniformBufferMapped != nullptr) vkUnmapMemory(device, uniformBufferMemory);
+    if (uniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, uniformBuffer, nullptr);
+    if (uniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, uniformBufferMemory, nullptr);
 
     for (VkFramebuffer framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
 
@@ -1137,20 +1163,11 @@ void VulkanContext::cleanup() {
 
     if (swapChain != VK_NULL_HANDLE) vkDestroySwapchainKHR(device, swapChain, nullptr);
 
-    if (descriptorPool != VK_NULL_HANDLE) vkDestroyDescriptorPool(device, descriptorPool, nullptr);
-    if (descriptorSetLayout != VK_NULL_HANDLE) vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
-    if (uniformBufferMapped != nullptr) vkUnmapMemory(device, uniformBufferMemory);
-    if (uniformBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, uniformBuffer, nullptr);
-    if (uniformBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, uniformBufferMemory, nullptr);
-
     if (device != VK_NULL_HANDLE) vkDestroyDevice(device, nullptr);
 
     if (surface != VK_NULL_HANDLE) vkDestroySurfaceKHR(instance, surface, nullptr);
-
     if (debugMessenger != VK_NULL_HANDLE) destroyDebugUtilsMessenger(instance, debugMessenger, nullptr);
-
     if (instance != VK_NULL_HANDLE) vkDestroyInstance(instance, nullptr);
-
     if (window != nullptr) glfwDestroyWindow(window);
 
     glfwTerminate();
