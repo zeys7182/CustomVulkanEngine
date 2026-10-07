@@ -354,12 +354,21 @@ void VulkanContext::createSyncObjects() {
         throw std::runtime_error("Failed to create image available semaphore");
     }
 
-    if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create render finished semaphore");
-    }
-
     if (vkCreateFence(device, &fenceInfo, nullptr, &inFlightFence) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create in-flight fence");
+    }
+
+    createRenderFinishedSemaphores();
+}
+
+void VulkanContext::createRenderFinishedSemaphores() {
+    renderFinishedSemaphores.resize(swapChainImages.size());
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for (VkSemaphore& semaphore : renderFinishedSemaphores) {
+        if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS) throw std::runtime_error("Failed to create render finished semaphore");
     }
 }
 
@@ -652,6 +661,8 @@ void VulkanContext::recreateSwapchain() {
     }
 
     vkDeviceWaitIdle(device);
+    for (VkSemaphore semaphore : renderFinishedSemaphores) vkDestroySemaphore(device, semaphore, nullptr);
+    renderFinishedSemaphores.clear();
 
     if (!commandBuffers.empty()) vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
     commandBuffers.clear();
@@ -681,6 +692,7 @@ void VulkanContext::recreateSwapchain() {
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 
     createSwapchain();
+    createRenderFinishedSemaphores();
     createImageViews();
     createDepthResources();
     createRenderPass();
@@ -1103,8 +1115,6 @@ void VulkanContext::mainLoop() {
             throw std::runtime_error("Failed to wait for fence");
         }
 
-        if (vkQueueWaitIdle(presentQueue) != VK_SUCCESS) throw std::runtime_error("Failed to wait for present queue");
-
         uint32_t imageIndex = 0;
 
         VkResult acquireResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
@@ -1122,7 +1132,7 @@ void VulkanContext::mainLoop() {
 
         VkSemaphore waitSemaphores[] = { imageAvailableSemaphore };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-        VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+        VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[imageIndex] };
 
         updateUniformBuffer();
 
@@ -1163,7 +1173,7 @@ void VulkanContext::mainLoop() {
 void VulkanContext::cleanup() {
     if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
 
-    if (renderFinishedSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, renderFinishedSemaphore, nullptr);
+    for (VkSemaphore semaphore : renderFinishedSemaphores) vkDestroySemaphore(device, semaphore, nullptr);
     if (imageAvailableSemaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, imageAvailableSemaphore, nullptr);
     if (inFlightFence != VK_NULL_HANDLE) vkDestroyFence(device, inFlightFence, nullptr);
 

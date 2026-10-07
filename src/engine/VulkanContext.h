@@ -89,6 +89,8 @@ private:
     void processInput(float deltaTime);
     void processMouseMovement();
     glm::vec3 getCameraFront() const;
+
+    void createRenderFinishedSemaphores();
     
 private:
     glm::vec3 cameraPosition{2.0f, 2.0f, 2.0f};
@@ -147,7 +149,7 @@ private:
     void* uniformBufferMapped = nullptr;
 
     VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-    VkSemaphore renderFinishedSemaphore = VK_NULL_HANDLE;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
     VkFence inFlightFence = VK_NULL_HANDLE;
 
     VkImage depthImage = VK_NULL_HANDLE;
