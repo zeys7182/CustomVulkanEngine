@@ -85,11 +85,19 @@ private:
     void createDescriptorPool();
     void createDescriptorSet();
     void updateUniformBuffer();
+
     void processInput(float deltaTime);
+    void processMouseMovement();
+    glm::vec3 getCameraFront() const;
     
 private:
     glm::vec3 cameraPosition{2.0f, 2.0f, 2.0f};
-    
+    float cameraYaw = -135.0f;
+    float cameraPitch = -35.0f;
+    double lastMouseX = 0.0;
+    double lastMouseY = 0.0;
+    bool firstMouse = true;
+
     GLFWwindow* window = nullptr;
     bool framebufferResized = false;
 

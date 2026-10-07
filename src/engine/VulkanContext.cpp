@@ -225,18 +225,50 @@ void VulkanContext::updateUniformBuffer() {
 
     UniformBufferObject uniformBufferObject{};
     uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    uniformBufferObject.view = glm::lookAt(cameraPosition, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    uniformBufferObject.view = glm::lookAt(cameraPosition, cameraPosition + getCameraFront(), glm::vec3(0.0f, 1.0f, 0.0f));
     uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
     uniformBufferObject.projection[1][1] *= -1.0f;
 
     std::memcpy(uniformBufferMapped, &uniformBufferObject, sizeof(uniformBufferObject));
 }
 
+glm::vec3 VulkanContext::getCameraFront() const {
+    glm::vec3 front{};
+    front.x = std::cos(glm::radians(cameraYaw)) * std::cos(glm::radians(cameraPitch));
+    front.y = std::sin(glm::radians(cameraPitch));
+    front.z = std::sin(glm::radians(cameraYaw)) * std::cos(glm::radians(cameraPitch));
+    return glm::normalize(front);
+}
+
+void VulkanContext::processMouseMovement() {
+    double mouseX = 0.0;
+    double mouseY = 0.0;
+
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+
+    if (firstMouse) {
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+        firstMouse = false;
+    }
+
+    float xOffset = static_cast<float>(mouseX - lastMouseX);
+    float yOffset = static_cast<float>(lastMouseY - mouseY);
+
+    lastMouseX = mouseX;
+    lastMouseY = mouseY;
+
+    const float sensitivity = 0.1f;
+
+    cameraYaw += xOffset * sensitivity;
+    cameraPitch += yOffset * sensitivity;
+    cameraPitch = std::clamp(cameraPitch, -89.0f, 89.0f);
+}
+
 void VulkanContext::processInput(float deltaTime) {
     const float cameraSpeed = 2.5f * deltaTime;
-    const glm::vec3 target{0.0f, 0.0f, 0.0f};
     const glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
-    const glm::vec3 forward = glm::normalize(target - cameraPosition);
+    const glm::vec3 forward = getCameraFront();
     const glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPosition += forward * cameraSpeed;
@@ -911,7 +943,7 @@ void VulkanContext::initializeWindow() {
 
     glfwSetWindowUserPointer(window, this);
     glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void VulkanContext::createSurface() {
@@ -1064,6 +1096,7 @@ void VulkanContext::mainLoop() {
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
         float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentFrameTime - lastFrameTime).count();
         lastFrameTime = currentFrameTime;
+        processMouseMovement();
         processInput(deltaTime);
 
         if (vkWaitForFences(device, 1, &inFlightFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
