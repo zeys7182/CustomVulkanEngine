@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -148,9 +151,12 @@ private:
     VkDeviceMemory uniformBufferMemory = VK_NULL_HANDLE;
     void* uniformBufferMapped = nullptr;
 
-    VkSemaphore imageAvailableSemaphore = VK_NULL_HANDLE;
-    std::vector<VkSemaphore> renderFinishedSemaphores;
-    VkFence inFlightFence = VK_NULL_HANDLE;
+    static constexpr std::size_t MAX_FRAMES_IN_FLIGHT = 2;
+    std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores{};
+    std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderFinishedSemaphores{};
+    std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
+    std::vector<VkFence> imagesInFlight;
+    std::size_t currentFrame = 0;
 
     VkImage depthImage = VK_NULL_HANDLE;
     VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
