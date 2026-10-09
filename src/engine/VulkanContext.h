@@ -38,6 +38,7 @@ struct Vertex {
     float position[3];
     float color[3];
     float texCoord[2];
+    float normal[3];
 };
 
 struct UniformBufferObject {
@@ -159,7 +160,7 @@ private:
 
     static constexpr std::size_t MAX_FRAMES_IN_FLIGHT = 2;
     std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores{};
-    std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> renderFinishedSemaphores{};
+    std::vector<VkSemaphore> renderFinishedSemaphores;
     std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
     std::vector<VkFence> imagesInFlight;
     std::size_t currentFrame = 0;
