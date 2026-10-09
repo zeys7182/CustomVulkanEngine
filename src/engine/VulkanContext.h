@@ -15,6 +15,8 @@
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
+#include <memory>
+
 struct QueueFamilyIndices {
     uint32_t graphicsFamily = 0;
     uint32_t presentFamily = 0;
@@ -43,6 +45,8 @@ struct UniformBufferObject {
     glm::mat4 view;
     glm::mat4 projection;
 };
+
+class Texture;
 
 class VulkanContext {
 public:
@@ -80,9 +84,6 @@ private:
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
     void createVertexBuffer();
-    void createTextureImage();
-    void createTextureImageView();
-    void createTextureSampler();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize size);
 
@@ -150,10 +151,7 @@ private:
     VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
     uint32_t indexCount = 0;
 
-    VkImage textureImage = VK_NULL_HANDLE;
-    VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
-    VkImageView textureImageView = VK_NULL_HANDLE;
-    VkSampler textureSampler = VK_NULL_HANDLE;
+    std::unique_ptr<Texture> texture;
 
     VkBuffer uniformBuffer = VK_NULL_HANDLE;
     VkDeviceMemory uniformBufferMemory = VK_NULL_HANDLE;

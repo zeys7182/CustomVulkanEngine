@@ -27,6 +27,7 @@ FetchContent_MakeAvailable(glm)
 add_executable(MyVulkanEngine
     src/main.cpp
     src/engine/VulkanContext.cpp
+    src/engine/Texture.cpp
 )
 
 target_link_libraries(MyVulkanEngine PRIVATE Vulkan::Vulkan glfw glm::glm)
