@@ -30,3 +30,4 @@ add_executable(MyVulkanEngine
 )
 
 target_link_libraries(MyVulkanEngine PRIVATE Vulkan::Vulkan glfw glm::glm)
+target_include_directories(MyVulkanEngine PRIVATE third_party/stb)

@@ -11,6 +11,9 @@
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 namespace {
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
     SwapChainSupportDetails details;
@@ -955,10 +958,14 @@ void VulkanContext::createIndexBuffer() {
 }
 
 void VulkanContext::createTextureImage() {
-    const uint32_t textureWidth = 2;
-    const uint32_t textureHeight = 2;
-    const std::array<uint32_t, 4> pixels = {0xffff0000, 0xff00ff00, 0xff0000ff, 0xffffffff};
-    const VkDeviceSize imageSize = sizeof(pixels);
+    int textureWidth = 0;
+    int textureHeight = 0;
+    int textureChannels = 0;
+    stbi_uc* pixels = stbi_load("assets/textures/test.png", &textureWidth, &textureHeight, &textureChannels, STBI_rgb_alpha);
+
+    if (pixels == nullptr) throw std::runtime_error("Failed to load texture: assets/textures/test.png");
+
+    const VkDeviceSize imageSize = static_cast<VkDeviceSize>(textureWidth) * static_cast<VkDeviceSize>(textureHeight) * 4;
 
     VkBuffer stagingBuffer = VK_NULL_HANDLE;
     VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
@@ -966,10 +973,11 @@ void VulkanContext::createTextureImage() {
 
     void* data = nullptr;
     vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
-    std::memcpy(data, pixels.data(), imageSize);
+    std::memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(device, stagingBufferMemory);
+    stbi_image_free(pixels);
 
-    createImage(textureWidth, textureHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    createImage(static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
     VkCommandBufferAllocateInfo allocateInfo{};
     allocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -1011,7 +1019,7 @@ void VulkanContext::createTextureImage() {
     copyRegion.imageSubresource.baseArrayLayer = 0;
     copyRegion.imageSubresource.layerCount = 1;
     copyRegion.imageOffset = {0, 0, 0};
-    copyRegion.imageExtent = {textureWidth, textureHeight, 1};
+    copyRegion.imageExtent = {static_cast<uint32_t>(textureWidth), static_cast<uint32_t>(textureHeight), 1};
 
     vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copyRegion);
 
