@@ -35,8 +35,8 @@ struct SwapChainSupportDetails {
 struct Vertex {
     float position[3];
     float color[3];
+    float texCoord[2];
 };
-
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -80,6 +80,9 @@ private:
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
     void createVertexBuffer();
+    void createTextureImage();
+    void createTextureImageView();
+    void createTextureSampler();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize size);
 
@@ -146,6 +149,11 @@ private:
     VkBuffer indexBuffer = VK_NULL_HANDLE;
     VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
     uint32_t indexCount = 0;
+
+    VkImage textureImage = VK_NULL_HANDLE;
+    VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
+    VkImageView textureImageView = VK_NULL_HANDLE;
+    VkSampler textureSampler = VK_NULL_HANDLE;
 
     VkBuffer uniformBuffer = VK_NULL_HANDLE;
     VkDeviceMemory uniformBufferMemory = VK_NULL_HANDLE;
