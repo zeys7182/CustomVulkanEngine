@@ -1,6 +1,6 @@
 #include "VulkanContext.h"
 #include "Texture.h"
-#include "Mesh.h"
+#include "Model.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -299,8 +299,8 @@ void VulkanContext::createCommandBuffers() {
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-        mesh->bind(commandBuffer);
-        mesh->draw(commandBuffer);
+        model->bind(commandBuffer);
+        model->draw(commandBuffer);
         vkCmdEndRenderPass(commandBuffers[i]);
 
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -848,49 +848,8 @@ void VulkanContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-void VulkanContext::createMesh() {
-    const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-        {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
-
-        {{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-        {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
-        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
-
-        {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
-
-        {{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-        {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
-        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
-        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
-
-        {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
-
-        {{-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-        {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
-        {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
-        {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}
-    };
-
-    const std::vector<uint16_t> indices = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        8, 9, 10, 10, 11, 8,
-        12, 13, 14, 14, 15, 12,
-        16, 17, 18, 18, 19, 16,
-        20, 21, 22, 22, 23, 20
-    };
-
-    mesh = std::make_unique<Mesh>(device, physicalDevice, commandPool, graphicsQueue, vertices, indices);
+void VulkanContext::createModel() {
+    model = std::make_unique<Model>(device, physicalDevice, commandPool, graphicsQueue, "assets/models/cube.obj");
 }
 
 
@@ -1017,7 +976,7 @@ void VulkanContext::initializeVulkan() {
     createDescriptorPool();
     createDescriptorSet();
     createGraphicsPipeline();
-    createMesh();
+    createModel();
     createCommandBuffers();
     createSyncObjects();
 }
@@ -1145,8 +1104,9 @@ void VulkanContext::mainLoop() {
 }
 
 void VulkanContext::cleanup() {
-    mesh.reset();
     if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
+
+    model.reset();
 
     for (VkSemaphore semaphore : imageAvailableSemaphores) if (semaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, semaphore, nullptr);
     for (VkSemaphore semaphore : renderFinishedSemaphores) if (semaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, semaphore, nullptr);

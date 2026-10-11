@@ -42,7 +42,7 @@ struct UniformBufferObject {
     glm::mat4 projection;
 };
 
-class Mesh;
+class Model;
 
 class Texture;
 
@@ -92,7 +92,7 @@ private:
 
     void createRenderFinishedSemaphores();
 
-    void createMesh();
+    void createModel();
     
 private:
     Camera camera;
@@ -134,8 +134,8 @@ private:
     VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers;
     
-    std::unique_ptr<Mesh> mesh;
-    
+    std::unique_ptr<Model> model;
+        
     std::unique_ptr<Texture> texture;
 
     VkBuffer uniformBuffer = VK_NULL_HANDLE;
