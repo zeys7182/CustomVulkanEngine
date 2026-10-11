@@ -15,9 +15,14 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 projection;
 } ubo;
 
+layout(push_constant) uniform PushConstants {
+    mat4 objectModel;
+} pushConstants;
+
 void main() {
-    gl_Position = ubo.projection * ubo.view * ubo.model * vec4(inPosition, 1.0);
+    mat4 modelMatrix = pushConstants.objectModel * ubo.model;
+    gl_Position = ubo.projection * ubo.view * modelMatrix * vec4(inPosition, 1.0);
     fragColor = inColor;
     fragTexCoord = inTexCoord;
-    fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal;
+    fragNormal = mat3(transpose(inverse(modelMatrix))) * inNormal;
 }
