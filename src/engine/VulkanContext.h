@@ -16,6 +16,8 @@
 #include <glm/vec3.hpp>
 
 #include <memory>
+#include "Vertex.h"
+#include "Camera.h"
 
 struct QueueFamilyIndices {
     uint32_t graphicsFamily = 0;
@@ -34,18 +36,13 @@ struct SwapChainSupportDetails {
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct Vertex {
-    float position[3];
-    float color[3];
-    float texCoord[2];
-    float normal[3];
-};
-
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 projection;
 };
+
+class Mesh;
 
 class Texture;
 
@@ -84,7 +81,6 @@ private:
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
-    void createVertexBuffer();
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
     void copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer, VkDeviceSize size);
 
@@ -94,19 +90,12 @@ private:
     void createDescriptorSet();
     void updateUniformBuffer();
 
-    void processInput(float deltaTime);
-    void processMouseMovement();
-    glm::vec3 getCameraFront() const;
-
     void createRenderFinishedSemaphores();
+
+    void createMesh();
     
 private:
-    glm::vec3 cameraPosition{2.0f, 2.0f, 2.0f};
-    float cameraYaw = -135.0f;
-    float cameraPitch = -35.0f;
-    double lastMouseX = 0.0;
-    double lastMouseY = 0.0;
-    bool firstMouse = true;
+    Camera camera;
 
     GLFWwindow* window = nullptr;
     bool framebufferResized = false;
@@ -144,14 +133,9 @@ private:
 
     VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers;
-
-    VkBuffer vertexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertexBufferMemory = VK_NULL_HANDLE;
-
-    VkBuffer indexBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
-    uint32_t indexCount = 0;
-
+    
+    std::unique_ptr<Mesh> mesh;
+    
     std::unique_ptr<Texture> texture;
 
     VkBuffer uniformBuffer = VK_NULL_HANDLE;
@@ -170,8 +154,6 @@ private:
     VkImageView depthImageView = VK_NULL_HANDLE;
 
     void recreateSwapchain();
-
-    void createIndexBuffer();
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 }; 

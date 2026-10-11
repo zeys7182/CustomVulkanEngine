@@ -1,5 +1,6 @@
 #include "VulkanContext.h"
 #include "Texture.h"
+#include "Mesh.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -240,59 +241,12 @@ void VulkanContext::updateUniformBuffer() {
     const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject uniformBufferObject{};
-    uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    uniformBufferObject.view = glm::lookAt(cameraPosition, cameraPosition + getCameraFront(), glm::vec3(0.0f, 1.0f, 0.0f));
+    uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));\
+    uniformBufferObject.view = camera.getViewMatrix();
     uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
     uniformBufferObject.projection[1][1] *= -1.0f;
 
     std::memcpy(uniformBufferMapped, &uniformBufferObject, sizeof(uniformBufferObject));
-}
-
-glm::vec3 VulkanContext::getCameraFront() const {
-    glm::vec3 front{};
-    front.x = std::cos(glm::radians(cameraYaw)) * std::cos(glm::radians(cameraPitch));
-    front.y = std::sin(glm::radians(cameraPitch));
-    front.z = std::sin(glm::radians(cameraYaw)) * std::cos(glm::radians(cameraPitch));
-    return glm::normalize(front);
-}
-
-void VulkanContext::processMouseMovement() {
-    double mouseX = 0.0;
-    double mouseY = 0.0;
-
-    glfwGetCursorPos(window, &mouseX, &mouseY);
-
-    if (firstMouse) {
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
-        firstMouse = false;
-    }
-
-    float xOffset = static_cast<float>(mouseX - lastMouseX);
-    float yOffset = static_cast<float>(lastMouseY - mouseY);
-
-    lastMouseX = mouseX;
-    lastMouseY = mouseY;
-
-    const float sensitivity = 0.1f;
-
-    cameraYaw += xOffset * sensitivity;
-    cameraPitch += yOffset * sensitivity;
-    cameraPitch = std::clamp(cameraPitch, -89.0f, 89.0f);
-}
-
-void VulkanContext::processInput(float deltaTime) {
-    const float cameraSpeed = 2.5f * deltaTime;
-    const glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
-    const glm::vec3 forward = getCameraFront();
-    const glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPosition += forward * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPosition -= forward * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPosition -= right * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPosition += right * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPosition += worldUp * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPosition -= worldUp * cameraSpeed;
 }
 
 void VulkanContext::createCommandPool() {
@@ -345,11 +299,8 @@ void VulkanContext::createCommandBuffers() {
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
-        VkBuffer vertexBuffers[] = {vertexBuffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-        vkCmdDrawIndexed(commandBuffer, indexCount, 1, 0, 0, 0);
+        mesh->bind(commandBuffer);
+        mesh->draw(commandBuffer);
         vkCmdEndRenderPass(commandBuffers[i]);
 
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -897,7 +848,7 @@ void VulkanContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer
     vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
 
-void VulkanContext::createVertexBuffer() {
+void VulkanContext::createMesh() {
     const std::vector<Vertex> vertices = {
         {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
         {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
@@ -930,26 +881,6 @@ void VulkanContext::createVertexBuffer() {
         {{-0.5f, -0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}}
     };
 
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-    VkBuffer stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data = nullptr;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    std::memcpy(data, vertices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(device, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
-
-void VulkanContext::createIndexBuffer() {
     const std::vector<uint16_t> indices = {
         0, 1, 2, 2, 3, 0,
         4, 5, 6, 6, 7, 4,
@@ -959,25 +890,7 @@ void VulkanContext::createIndexBuffer() {
         20, 21, 22, 22, 23, 20
     };
 
-    indexCount = static_cast<uint32_t>(indices.size());
-
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
-    VkBuffer stagingBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data = nullptr;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    std::memcpy(data, indices.data(), static_cast<size_t>(bufferSize));
-    vkUnmapMemory(device, stagingBufferMemory);
-
-    createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
-
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
+    mesh = std::make_unique<Mesh>(device, physicalDevice, commandPool, graphicsQueue, vertices, indices);
 }
 
 
@@ -1104,8 +1017,7 @@ void VulkanContext::initializeVulkan() {
     createDescriptorPool();
     createDescriptorSet();
     createGraphicsPipeline();
-    createVertexBuffer();
-    createIndexBuffer();
+    createMesh();
     createCommandBuffers();
     createSyncObjects();
 }
@@ -1165,8 +1077,8 @@ void VulkanContext::mainLoop() {
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
         float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentFrameTime - lastFrameTime).count();
         lastFrameTime = currentFrameTime;
-        processMouseMovement();
-        processInput(deltaTime);
+        camera.processMouseMovement(window);
+        camera.processInput(window, deltaTime);
 
         if (vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
             throw std::runtime_error("Failed to wait for fence");
@@ -1233,6 +1145,7 @@ void VulkanContext::mainLoop() {
 }
 
 void VulkanContext::cleanup() {
+    mesh.reset();
     if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
 
     for (VkSemaphore semaphore : imageAvailableSemaphores) if (semaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, semaphore, nullptr);
@@ -1240,11 +1153,6 @@ void VulkanContext::cleanup() {
     for (VkFence fence : inFlightFences) if (fence != VK_NULL_HANDLE) vkDestroyFence(device, fence, nullptr);
 
     if (commandPool != VK_NULL_HANDLE) vkDestroyCommandPool(device, commandPool, nullptr);
-
-    if (indexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, indexBuffer, nullptr);
-    if (indexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, indexBufferMemory, nullptr);
-    if (vertexBuffer != VK_NULL_HANDLE) vkDestroyBuffer(device, vertexBuffer, nullptr);
-    if (vertexBufferMemory != VK_NULL_HANDLE) vkFreeMemory(device, vertexBufferMemory, nullptr);
 
     if (graphicsPipeline != VK_NULL_HANDLE) vkDestroyPipeline(device, graphicsPipeline, nullptr);
     if (pipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
