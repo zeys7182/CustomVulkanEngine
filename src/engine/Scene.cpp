@@ -1,13 +1,13 @@
 #include "Scene.h"
 
-void Scene::addObject(const glm::mat4& transform) {
-    objectTransforms.push_back(transform);
+void Scene::addObject(Model* model, const glm::mat4& transform) {
+    objects.push_back({model, transform});
 }
 
 void Scene::clear() {
-    objectTransforms.clear();
+    objects.clear();
 }
 
-const std::vector<glm::mat4>& Scene::getObjectTransforms() const {
-    return objectTransforms;
+const std::vector<SceneObject>& Scene::getObjects() const {
+    return objects;
 }

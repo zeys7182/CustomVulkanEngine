@@ -302,9 +302,10 @@ void VulkanContext::createCommandBuffers() {
 
         model->bind(commandBuffer);
 
-        for (const glm::mat4& objectModel : scene.getObjectTransforms()) {
-            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &objectModel);
-            model->draw(commandBuffer);
+        for (const SceneObject& object : scene.getObjects()) {
+            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &object.transform);
+            object.model->bind(commandBuffer);
+            object.model->draw(commandBuffer);
         }
         
         vkCmdEndRenderPass(commandBuffers[i]);
@@ -801,9 +802,9 @@ void VulkanContext::createDescriptorSetLayout() {
 
 void VulkanContext::createScene() {
     scene.clear();
-    scene.addObject(glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)));
-    scene.addObject(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
-    scene.addObject(glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)));
+    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)));
+    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)));
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {

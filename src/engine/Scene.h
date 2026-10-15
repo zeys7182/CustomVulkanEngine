@@ -4,13 +4,20 @@
 
 #include <vector>
 
+class Model;
+
+struct SceneObject {
+    Model* model = nullptr;
+    glm::mat4 transform{1.0f};
+};
+
 class Scene {
 public:
-    void addObject(const glm::mat4& transform);
+    void addObject(Model* model, const glm::mat4& transform);
     void clear();
 
-    const std::vector<glm::mat4>& getObjectTransforms() const;
+    const std::vector<SceneObject>& getObjects() const;
 
 private:
-    std::vector<glm::mat4> objectTransforms;
+    std::vector<SceneObject> objects;
 };
