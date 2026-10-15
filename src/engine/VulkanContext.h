@@ -19,6 +19,8 @@
 #include "Vertex.h"
 #include "Camera.h"
 
+#include "Scene.h"
+
 struct QueueFamilyIndices {
     uint32_t graphicsFamily = 0;
     uint32_t presentFamily = 0;
@@ -93,9 +95,11 @@ private:
     void createRenderFinishedSemaphores();
 
     void createModel();
+    void createScene();
     
 private:
     Camera camera;
+    Scene scene;
 
     GLFWwindow* window = nullptr;
     bool framebufferResized = false;

@@ -31,6 +31,7 @@ add_executable(MyVulkanEngine
     src/engine/Mesh.cpp
     src/engine/Camera.cpp
     src/engine/Model.cpp
+    src/engine/Scene.cpp
 )
 
 target_link_libraries(MyVulkanEngine PRIVATE Vulkan::Vulkan glfw glm::glm)

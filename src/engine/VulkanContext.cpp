@@ -302,13 +302,7 @@ void VulkanContext::createCommandBuffers() {
 
         model->bind(commandBuffer);
 
-        const std::array<glm::mat4, 3> objectModels = {
-            glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)),
-            glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)),
-            glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f))
-        };
-
-        for (const glm::mat4& objectModel : objectModels) {
+        for (const glm::mat4& objectModel : scene.getObjectTransforms()) {
             vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &objectModel);
             model->draw(commandBuffer);
         }
@@ -805,6 +799,13 @@ void VulkanContext::createDescriptorSetLayout() {
     }
 }
 
+void VulkanContext::createScene() {
+    scene.clear();
+    scene.addObject(glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)));
+    scene.addObject(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+    scene.addObject(glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)));
+}
+
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
     auto* context = static_cast<VulkanContext*>(glfwGetWindowUserPointer(window));
     context->framebufferResized = true;
@@ -996,6 +997,7 @@ void VulkanContext::initializeVulkan() {
     createDescriptorSet();
     createGraphicsPipeline();
     createModel();
+    createScene();
     createCommandBuffers();
     createSyncObjects();
 }
