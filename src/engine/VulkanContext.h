@@ -139,6 +139,7 @@ private:
     std::vector<VkCommandBuffer> commandBuffers;
     
     std::unique_ptr<Model> model;
+    std::unique_ptr<Model> pyramidModel;
         
     std::unique_ptr<Texture> texture;
 

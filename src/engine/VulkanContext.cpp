@@ -802,8 +802,11 @@ void VulkanContext::createDescriptorSetLayout() {
 
 void VulkanContext::createScene() {
     scene.clear();
+
     scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)));
-    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+
+    scene.addObject(pyramidModel.get(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+
     scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)));
 }
 
@@ -871,6 +874,7 @@ void VulkanContext::copyBuffer(VkBuffer sourceBuffer, VkBuffer destinationBuffer
 
 void VulkanContext::createModel() {
     model = std::make_unique<Model>(device, physicalDevice, commandPool, graphicsQueue, "assets/models/cube.obj");
+    pyramidModel = std::make_unique<Model>(device, physicalDevice, commandPool, graphicsQueue, "assets/models/pyramid.obj");
 }
 
 
@@ -1129,6 +1133,7 @@ void VulkanContext::cleanup() {
     if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);
 
     model.reset();
+    pyramidModel.reset();
 
     for (VkSemaphore semaphore : imageAvailableSemaphores) if (semaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, semaphore, nullptr);
     for (VkSemaphore semaphore : renderFinishedSemaphores) if (semaphore != VK_NULL_HANDLE) vkDestroySemaphore(device, semaphore, nullptr);
