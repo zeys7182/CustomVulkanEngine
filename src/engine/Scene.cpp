@@ -1,7 +1,7 @@
 #include "Scene.h"
 
-void Scene::addObject(Model* model, const glm::mat4& transform) {
-    objects.push_back({model, transform});
+void Scene::addObject(Model* model, const glm::mat4& transform, const Material& material) {
+    objects.push_back({model, transform, material});
 }
 
 void Scene::clear() {

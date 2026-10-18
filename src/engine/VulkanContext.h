@@ -46,6 +46,11 @@ struct UniformBufferObject {
     alignas(16) glm::vec4 lightColor;
 };
 
+struct ObjectPushConstants {
+    glm::mat4 objectModel{1.0f};
+    alignas(16) glm::vec4 baseColor{1.0f};
+};
+
 class Model;
 
 class Texture;

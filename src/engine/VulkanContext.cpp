@@ -306,7 +306,12 @@ void VulkanContext::createCommandBuffers() {
         model->bind(commandBuffer);
 
         for (const SceneObject& object : scene.getObjects()) {
-            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &object.transform);
+            ObjectPushConstants pushConstants{};
+            pushConstants.objectModel = object.transform;
+            pushConstants.baseColor = object.material.baseColor;
+
+            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ObjectPushConstants), &pushConstants);
+
             object.model->bind(commandBuffer);
             object.model->draw(commandBuffer);
         }
@@ -444,7 +449,7 @@ void VulkanContext::createGraphicsPipeline() {
     VkPushConstantRange pushConstantRange{};
     pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(glm::mat4);
+    pushConstantRange.size = sizeof(ObjectPushConstants);
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -806,11 +811,18 @@ void VulkanContext::createDescriptorSetLayout() {
 void VulkanContext::createScene() {
     scene.clear();
 
-    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)));
+    Material redMaterial{};
+    redMaterial.baseColor = glm::vec4(1.0f, 0.25f, 0.25f, 1.0f);
 
-    scene.addObject(pyramidModel.get(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)));
+    Material greenMaterial{};
+    greenMaterial.baseColor = glm::vec4(0.25f, 1.0f, 0.25f, 1.0f);
 
-    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)));
+    Material blueMaterial{};
+    blueMaterial.baseColor = glm::vec4(0.25f, 0.25f, 1.0f, 1.0f);
+
+    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)), redMaterial);
+    scene.addObject(pyramidModel.get(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), greenMaterial);
+    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)), blueMaterial);
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
