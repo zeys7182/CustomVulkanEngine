@@ -10,7 +10,17 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     vec4 baseColor = texture(texSampler, fragTexCoord) * vec4(fragColor, 1.0);
+
+    vec3 normal = normalize(fragNormal);
     vec3 lightDirection = normalize(vec3(-1.0, -1.0, -1.0));
-    float diffuse = max(dot(normalize(fragNormal), -lightDirection), 0.95);
-    outColor = vec4(baseColor.rgb * diffuse, baseColor.a);
+    vec3 lightColor = vec3(1.0, 0.95, 0.85);
+
+    float ambientStrength = 0.15;
+    vec3 ambient = ambientStrength * lightColor;
+
+    float diffuseStrength = max(dot(normal, -lightDirection), 0.0);
+    vec3 diffuse = diffuseStrength * lightColor;
+
+    vec3 lighting = ambient + diffuse;
+    outColor = vec4(baseColor.rgb * lighting, baseColor.a);
 }
