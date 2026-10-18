@@ -9,10 +9,12 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 fragNormal;
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(std140, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 projection;
+    vec4 lightDirection;
+    vec4 lightColor;
 } ubo;
 
 layout(push_constant) uniform PushConstants {

@@ -42,6 +42,8 @@ struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 projection;
+    alignas(16) glm::vec4 lightDirection;
+    alignas(16) glm::vec4 lightColor;
 };
 
 class Model;

@@ -241,10 +241,13 @@ void VulkanContext::updateUniformBuffer() {
     const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject uniformBufferObject{};
-    uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));\
+    uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     uniformBufferObject.view = camera.getViewMatrix();
     uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
     uniformBufferObject.projection[1][1] *= -1.0f;
+
+    uniformBufferObject.lightDirection = glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
+    uniformBufferObject.lightColor = glm::vec4(1.0f, 0.95f, 0.85f, 0.15f);
 
     std::memcpy(uniformBufferMapped, &uniformBufferObject, sizeof(uniformBufferObject));
 }
@@ -780,13 +783,13 @@ void VulkanContext::createDescriptorSetLayout() {
     uniformBufferBinding.binding = 0;
     uniformBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uniformBufferBinding.descriptorCount = 1;
-    uniformBufferBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uniformBufferBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding textureBinding{};
     textureBinding.binding = 1;
     textureBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     textureBinding.descriptorCount = 1;
-    textureBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    textureBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uniformBufferBinding, textureBinding};
 
