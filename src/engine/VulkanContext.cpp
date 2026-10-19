@@ -899,6 +899,21 @@ void VulkanContext::createScene() {
     scene.addObject(model.get(), leftTransform, redMaterial, glm::vec3(0.0f, 0.0f, 45.0f));
     scene.addObject(pyramidModel.get(), centerTransform, greenMaterial, glm::vec3(0.0f, 0.0f, -60.0f));
     scene.addObject(model.get(), rightTransform, blueMaterial, glm::vec3(45.0f, 0.0f, 0.0f));
+
+    Material obstacleMaterial{};
+    obstacleMaterial.baseColor = glm::vec4(0.8f, 0.55f, 0.2f, 1.0f);
+
+    Transform obstacleTransform{};
+    obstacleTransform.position = glm::vec3(0.0f, -0.15f, -2.5f);
+    obstacleTransform.scale = glm::vec3(1.5f);
+
+    scene.addObject(model.get(), obstacleTransform, obstacleMaterial);
+
+    AABB obstacleBounds{};
+    obstacleBounds.minimum = obstacleTransform.position - obstacleTransform.scale * 0.5f;
+    obstacleBounds.maximum = obstacleTransform.position + obstacleTransform.scale * 0.5f;
+
+    scene.addStaticCollider(obstacleBounds);
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
@@ -1157,8 +1172,21 @@ void VulkanContext::mainLoop() {
         deltaTime = std::clamp(deltaTime, 0.0f, 0.05f);
 
         camera.processMouseMovement(window);
+
+        const glm::vec3 previousPosition = camera.getPosition();
+
         camera.processInput(window, deltaTime);
         camera.constrainPosition(glm::vec3(-4.65f, 0.8f, -4.65f), glm::vec3(4.65f, 0.8f, 4.65f));
+
+        const glm::vec3 desiredPosition = camera.getPosition();
+        const glm::vec3 displacement = desiredPosition - previousPosition;
+
+        const glm::vec3 bodyOffset{0.0f, -0.75f, 0.0f};
+        const glm::vec3 bodyHalfExtents{0.25f, 0.95f, 0.25f};
+
+        const glm::vec3 resolvedCenter = scene.resolveMovement(previousPosition + bodyOffset, bodyHalfExtents, displacement);
+
+        camera.setPosition(resolvedCenter - bodyOffset);
 
         scene.update(deltaTime);
 

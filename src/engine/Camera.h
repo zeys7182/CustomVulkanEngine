@@ -16,6 +16,9 @@ public:
     glm::mat4 getViewMatrix() const;
     glm::vec3 getFront() const;
 
+    glm::vec3 getPosition() const;
+    void setPosition(const glm::vec3& newPosition);
+
 private:
     glm::vec3 position{2.0f, 0.8f, 2.0f};
     float yaw = -135.0f;

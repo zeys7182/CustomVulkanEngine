@@ -1,5 +1,6 @@
 #include "Scene.h"
 #include <cmath>
+#include <algorithm>
 
 void Scene::addObject(Model* model, const Transform& transform, const Material& material, const glm::vec3& angularVelocityDegrees) {
     objects.push_back({model, transform, material, angularVelocityDegrees});
@@ -17,8 +18,47 @@ void Scene::update(float deltaTime) {
 
 void Scene::clear() {
     objects.clear();
+    staticColliders.clear();
 }
 
 const std::vector<SceneObject>& Scene::getObjects() const {
     return objects;
+}
+
+void Scene::addStaticCollider(const AABB& collider) {
+    staticColliders.push_back(collider);
+}
+
+glm::vec3 Scene::resolveMovement(const glm::vec3& center, const glm::vec3& halfExtents, const glm::vec3& displacement) const {
+    glm::vec3 position = center;
+
+    for (int axis : {0, 2}) {
+        const int otherAxis = 2 - axis;
+        float target = position[axis] + displacement[axis];
+
+        for (const AABB& collider : staticColliders) {
+            const glm::vec3 expandedMinimum = collider.minimum - halfExtents;
+            const glm::vec3 expandedMaximum = collider.maximum + halfExtents;
+
+            if (position.y <= expandedMinimum.y || position.y >= expandedMaximum.y) {
+                continue;
+            }
+
+            if (position[otherAxis] <= expandedMinimum[otherAxis] || position[otherAxis] >= expandedMaximum[otherAxis]) {
+                continue;
+            }
+
+            if (displacement[axis] > 0.0f && position[axis] <= expandedMinimum[axis]) {
+                target = std::min(target, expandedMinimum[axis]);
+            }
+
+            if (displacement[axis] < 0.0f && position[axis] >= expandedMaximum[axis]) {
+                target = std::max(target, expandedMaximum[axis]);
+            }
+        }
+
+        position[axis] = target;
+    }
+
+    return position;
 }

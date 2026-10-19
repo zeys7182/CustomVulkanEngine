@@ -5,6 +5,7 @@
 #include <glm/mat4x4.hpp>
 #include <vector>
 #include "Transform.h"
+#include "AABB.h"
 
 class Model;
 
@@ -23,6 +24,10 @@ public:
 
     const std::vector<SceneObject>& getObjects() const;
 
+    void addStaticCollider(const AABB& collider);
+    glm::vec3 resolveMovement(const glm::vec3& center, const glm::vec3& halfExtents, const glm::vec3& displacement) const;
+
 private:
     std::vector<SceneObject> objects;
+    std::vector<AABB> staticColliders;
 };
