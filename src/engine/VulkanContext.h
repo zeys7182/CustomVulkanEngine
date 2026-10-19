@@ -56,6 +56,7 @@ class Model;
 class Texture;
 
 class VulkanContext {
+    static constexpr std::size_t MAX_FRAMES_IN_FLIGHT = 2;
 public:
     VulkanContext();
     ~VulkanContext();
@@ -80,6 +81,8 @@ private:
     void createGraphicsPipeline();
     void createCommandPool();
     void createCommandBuffers();
+    void recordCommandBuffer(uint32_t imageIndex);
+
     void createSyncObjects();
 
     void createDepthResources();
@@ -142,7 +145,7 @@ private:
 
     VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
     VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
+    std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> descriptorSets{};
 
     VkCommandPool commandPool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> commandBuffers;
@@ -152,11 +155,10 @@ private:
         
     std::unique_ptr<Texture> texture;
 
-    VkBuffer uniformBuffer = VK_NULL_HANDLE;
-    VkDeviceMemory uniformBufferMemory = VK_NULL_HANDLE;
-    void* uniformBufferMapped = nullptr;
+    std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT> uniformBuffers{};
+    std::array<VkDeviceMemory, MAX_FRAMES_IN_FLIGHT> uniformBufferMemories{};
+    std::array<void*, MAX_FRAMES_IN_FLIGHT> uniformBuffersMapped{};
 
-    static constexpr std::size_t MAX_FRAMES_IN_FLIGHT = 2;
     std::array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> imageAvailableSemaphores{};
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
