@@ -1,6 +1,6 @@
 #include "Scene.h"
 
-void Scene::addObject(Model* model, const glm::mat4& transform, const Material& material) {
+void Scene::addObject(Model* model, const Transform& transform, const Material& material) {
     objects.push_back({model, transform, material});
 }
 

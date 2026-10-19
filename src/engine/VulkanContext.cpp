@@ -307,7 +307,7 @@ void VulkanContext::createCommandBuffers() {
 
         for (const SceneObject& object : scene.getObjects()) {
             ObjectPushConstants pushConstants{};
-            pushConstants.objectModel = object.transform;
+            pushConstants.objectModel = object.transform.getMatrix();
             pushConstants.baseColor = object.material.baseColor;
 
             vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(ObjectPushConstants), &pushConstants);
@@ -820,9 +820,19 @@ void VulkanContext::createScene() {
     Material blueMaterial{};
     blueMaterial.baseColor = glm::vec4(0.25f, 0.25f, 1.0f, 1.0f);
 
-    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f)), redMaterial);
-    scene.addObject(pyramidModel.get(), glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f)), greenMaterial);
-    scene.addObject(model.get(), glm::translate(glm::mat4(1.0f), glm::vec3(1.5f, 0.0f, 0.0f)), blueMaterial);
+    Transform leftTransform{};
+    leftTransform.position = glm::vec3(-1.5f, 0.0f, 0.0f);
+
+    Transform centerTransform{};
+    centerTransform.rotationDegrees.x = 80.0f;
+
+    Transform rightTransform{};
+    rightTransform.position = glm::vec3(1.5f, 0.0f, 0.0f);
+    rightTransform.scale = glm::vec3(0.7f);
+
+    scene.addObject(model.get(), leftTransform, redMaterial);
+    scene.addObject(pyramidModel.get(), centerTransform, greenMaterial);
+    scene.addObject(model.get(), rightTransform, blueMaterial);
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
