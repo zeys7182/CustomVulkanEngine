@@ -103,6 +103,8 @@ private:
 
     void createModel();
     void createScene();
+
+    void cleanupDepthResources();
     
 private:
     Camera camera;
@@ -161,9 +163,9 @@ private:
     std::vector<VkFence> imagesInFlight;
     std::size_t currentFrame = 0;
 
-    VkImage depthImage = VK_NULL_HANDLE;
-    VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
-    VkImageView depthImageView = VK_NULL_HANDLE;
+    std::vector<VkImage> depthImages;
+    std::vector<VkDeviceMemory> depthImageMemories;
+    std::vector<VkImageView> depthImageViews;
 
     void recreateSwapchain();
 

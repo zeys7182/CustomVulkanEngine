@@ -631,7 +631,7 @@ void VulkanContext::createFramebuffers() {
     swapChainFramebuffers.resize(swapChainImageViews.size());
 
     for (size_t i = 0; i < swapChainImageViews.size(); ++i) {
-        VkImageView attachments[] = {swapChainImageViews[i], depthImageView};
+        VkImageView attachments[] = {swapChainImageViews[i], depthImageViews[i]};
 
         VkFramebufferCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -668,17 +668,7 @@ void VulkanContext::recreateSwapchain() {
     for (VkFramebuffer framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
     swapChainFramebuffers.clear();
 
-    if (depthImageView != VK_NULL_HANDLE) vkDestroyImageView(device, depthImageView, nullptr);
-    if (depthImage != VK_NULL_HANDLE) vkDestroyImage(device, depthImage, nullptr);
-    if (depthImageMemory != VK_NULL_HANDLE) vkFreeMemory(device, depthImageMemory, nullptr);
-
-    depthImageView = VK_NULL_HANDLE;
-    depthImage = VK_NULL_HANDLE;
-    depthImageMemory = VK_NULL_HANDLE;
-
-    vkDestroyImageView(device, depthImageView, nullptr);
-    vkDestroyImage(device, depthImage, nullptr);
-    vkFreeMemory(device, depthImageMemory, nullptr);
+    cleanupDepthResources();
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
@@ -779,8 +769,40 @@ VkFormat VulkanContext::findDepthFormat() {
 
 void VulkanContext::createDepthResources() {
     VkFormat depthFormat = findDepthFormat();
-    createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    depthImages.resize(swapChainImages.size(), VK_NULL_HANDLE);
+    depthImageMemories.resize(swapChainImages.size(), VK_NULL_HANDLE);
+    depthImageViews.resize(swapChainImages.size(), VK_NULL_HANDLE);
+
+    for (size_t i = 0; i < swapChainImages.size(); ++i) {
+        createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImages[i], depthImageMemories[i]);
+
+        depthImageViews[i] = createImageView(depthImages[i], depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+}
+
+void VulkanContext::cleanupDepthResources() {
+    for (VkImageView imageView : depthImageViews) {
+        if (imageView != VK_NULL_HANDLE) {
+            vkDestroyImageView(device, imageView, nullptr);
+        }
+    }
+
+    for (VkImage image : depthImages) {
+        if (image != VK_NULL_HANDLE) {
+            vkDestroyImage(device, image, nullptr);
+        }
+    }
+
+    for (VkDeviceMemory memory : depthImageMemories) {
+        if (memory != VK_NULL_HANDLE) {
+            vkFreeMemory(device, memory, nullptr);
+        }
+    }
+
+    depthImageViews.clear();
+    depthImages.clear();
+    depthImageMemories.clear();
 }
 
 void VulkanContext::createDescriptorSetLayout() {
@@ -1178,9 +1200,7 @@ void VulkanContext::cleanup() {
 
     for (VkFramebuffer framebuffer : swapChainFramebuffers) vkDestroyFramebuffer(device, framebuffer, nullptr);
 
-    if (depthImageView != VK_NULL_HANDLE) vkDestroyImageView(device, depthImageView, nullptr);
-    if (depthImage != VK_NULL_HANDLE) vkDestroyImage(device, depthImage, nullptr);
-    if (depthImageMemory != VK_NULL_HANDLE) vkFreeMemory(device, depthImageMemory, nullptr);
+    cleanupDepthResources();
 
     if (renderPass != VK_NULL_HANDLE) vkDestroyRenderPass(device, renderPass, nullptr);
 
