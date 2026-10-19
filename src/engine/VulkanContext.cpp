@@ -251,12 +251,8 @@ void VulkanContext::createDescriptorSet() {
 }
 
 void VulkanContext::updateUniformBuffer() {
-    static const auto startTime = std::chrono::high_resolution_clock::now();
-    const auto currentTime = std::chrono::high_resolution_clock::now();
-    const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     UniformBufferObject uniformBufferObject{};
-    uniformBufferObject.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    uniformBufferObject.model = glm::mat4(1.0f);
     uniformBufferObject.view = camera.getViewMatrix();
     uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
     uniformBufferObject.projection[1][1] *= -1.0f;
@@ -865,9 +861,9 @@ void VulkanContext::createScene() {
     rightTransform.position = glm::vec3(1.5f, 0.0f, 0.0f);
     rightTransform.scale = glm::vec3(0.7f);
 
-    scene.addObject(model.get(), leftTransform, redMaterial);
-    scene.addObject(pyramidModel.get(), centerTransform, greenMaterial);
-    scene.addObject(model.get(), rightTransform, blueMaterial);
+    scene.addObject(model.get(), leftTransform, redMaterial, glm::vec3(0.0f, 0.0f, 45.0f));
+    scene.addObject(pyramidModel.get(), centerTransform, greenMaterial, glm::vec3(0.0f, 0.0f, -60.0f));
+    scene.addObject(model.get(), rightTransform, blueMaterial, glm::vec3(45.0f, 0.0f, 0.0f));
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
@@ -1122,8 +1118,12 @@ void VulkanContext::mainLoop() {
         auto currentFrameTime = std::chrono::high_resolution_clock::now();
         float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentFrameTime - lastFrameTime).count();
         lastFrameTime = currentFrameTime;
+
+        deltaTime = std::clamp(deltaTime, 0.0f, 0.05f);
+
         camera.processMouseMovement(window);
         camera.processInput(window, deltaTime);
+        scene.update(deltaTime);
 
         if (vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
             throw std::runtime_error("Failed to wait for fence");
