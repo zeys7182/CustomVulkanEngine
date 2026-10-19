@@ -1158,6 +1158,8 @@ void VulkanContext::mainLoop() {
 
         camera.processMouseMovement(window);
         camera.processInput(window, deltaTime);
+        camera.constrainPosition(glm::vec3(-4.65f, 0.8f, -4.65f), glm::vec3(4.65f, 0.8f, 4.65f));
+
         scene.update(deltaTime);
 
         if (vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {

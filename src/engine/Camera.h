@@ -11,12 +11,13 @@ public:
 
     void processInput(GLFWwindow* window, float deltaTime);
     void processMouseMovement(GLFWwindow* window);
+    void constrainPosition(const glm::vec3& minimum, const glm::vec3& maximum);
 
     glm::mat4 getViewMatrix() const;
     glm::vec3 getFront() const;
 
 private:
-    glm::vec3 position{2.0f, 2.0f, 2.0f};
+    glm::vec3 position{2.0f, 0.8f, 2.0f};
     float yaw = -135.0f;
     float pitch = -25.0f;
 

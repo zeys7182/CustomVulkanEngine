@@ -8,17 +8,32 @@
 Camera::Camera() = default;
 
 void Camera::processInput(GLFWwindow* window, float deltaTime) {
-    const float cameraSpeed = 2.5f * deltaTime;
+    const float movementSpeed = 2.5f;
     const glm::vec3 worldUp{0.0f, 1.0f, 0.0f};
-    const glm::vec3 forward = getFront();
+
+    glm::vec3 forward = getFront();
+    forward.y = 0.0f;
+    forward = glm::normalize(forward);
+
     const glm::vec3 right = glm::normalize(glm::cross(forward, worldUp));
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) position += forward * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) position -= forward * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) position -= right * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) position += right * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) position += worldUp * cameraSpeed;
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) position -= worldUp * cameraSpeed;
+    glm::vec3 movement{0.0f};
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) movement += forward;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) movement -= forward;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) movement -= right;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) movement += right;
+
+    if (glm::dot(movement, movement) > 0.0f) {
+        movement = glm::normalize(movement);
+        position += movement * movementSpeed * deltaTime;
+    }
+}
+
+void Camera::constrainPosition(const glm::vec3& minimum, const glm::vec3& maximum) {
+    position.x = std::clamp(position.x, minimum.x, maximum.x);
+    position.y = std::clamp(position.y, minimum.y, maximum.y);
+    position.z = std::clamp(position.z, minimum.z, maximum.z);
 }
 
 void Camera::processMouseMovement(GLFWwindow* window) {
