@@ -106,6 +106,7 @@ private:
 
     void createModel();
     void createScene();
+    void createArena();
 
     void cleanupDepthResources();
     

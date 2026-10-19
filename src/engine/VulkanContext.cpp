@@ -254,7 +254,7 @@ void VulkanContext::updateUniformBuffer() {
     UniformBufferObject uniformBufferObject{};
     uniformBufferObject.model = glm::mat4(1.0f);
     uniformBufferObject.view = camera.getViewMatrix();
-    uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
+    uniformBufferObject.projection = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 50.0f);
     uniformBufferObject.projection[1][1] *= -1.0f;
 
     uniformBufferObject.lightDirection = glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
@@ -839,8 +839,43 @@ void VulkanContext::createDescriptorSetLayout() {
     }
 }
 
+void VulkanContext::createArena() {
+    Material floorMaterial{};
+    floorMaterial.baseColor = glm::vec4(0.45f, 0.45f, 0.5f, 1.0f);
+
+    Material wallMaterial{};
+    wallMaterial.baseColor = glm::vec4(0.65f, 0.7f, 0.8f, 1.0f);
+
+    Transform floorTransform{};
+    floorTransform.position = glm::vec3(0.0f, -1.0f, 0.0f);
+    floorTransform.scale = glm::vec3(10.0f, 0.2f, 10.0f);
+    scene.addObject(model.get(), floorTransform, floorMaterial);
+
+    Transform backWall{};
+    backWall.position = glm::vec3(0.0f, 0.6f, -5.0f);
+    backWall.scale = glm::vec3(10.4f, 3.0f, 0.2f);
+    scene.addObject(model.get(), backWall, wallMaterial);
+
+    Transform frontWall{};
+    frontWall.position = glm::vec3(0.0f, 0.6f, 5.0f);
+    frontWall.scale = glm::vec3(10.4f, 3.0f, 0.2f);
+    scene.addObject(model.get(), frontWall, wallMaterial);
+
+    Transform leftWall{};
+    leftWall.position = glm::vec3(-5.0f, 0.6f, 0.0f);
+    leftWall.scale = glm::vec3(0.2f, 3.0f, 10.0f);
+    scene.addObject(model.get(), leftWall, wallMaterial);
+
+    Transform rightWall{};
+    rightWall.position = glm::vec3(5.0f, 0.6f, 0.0f);
+    rightWall.scale = glm::vec3(0.2f, 3.0f, 10.0f);
+    scene.addObject(model.get(), rightWall, wallMaterial);
+}
+
 void VulkanContext::createScene() {
     scene.clear();
+
+    createArena();
 
     Material redMaterial{};
     redMaterial.baseColor = glm::vec4(1.0f, 0.25f, 0.25f, 1.0f);
