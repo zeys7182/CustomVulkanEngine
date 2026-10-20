@@ -924,6 +924,15 @@ void VulkanContext::createScene() {
     obstacleBounds.maximum = obstacleTransform.position + obstacleTransform.scale * 0.5f;
 
     scene.addStaticCollider(obstacleBounds);
+
+    Material targetMaterial{};
+    targetMaterial.baseColor = glm::vec4(1.0f, 0.15f, 0.15f, 1.0f);
+
+    Transform targetTransform{};
+    targetTransform.position = glm::vec3(0.0f, -0.15f, -4.0f);
+    targetTransform.scale = glm::vec3(1.0f, 1.5f, 0.3f);
+
+    scene.addTarget(model.get(), targetTransform, targetMaterial);
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
@@ -1204,12 +1213,10 @@ void VulkanContext::mainLoop() {
         const bool shootPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 
         if (shootPressed && !wasShootPressed) {
-            float hitDistance = 0.0f;
-
-            if (scene.raycastStatic(camera.getPosition(), camera.getFront(), 30.0f, hitDistance)) {
-                std::cout << "Hit static collider at distance: " << hitDistance << '\n';
+            if (scene.shootTarget(camera.getPosition(), camera.getFront(), 30.0f)) {
+                std::cout << "Target hit\n";
             } else {
-                std::cout << "Miss\n";
+                std::cout << "No target hit\n";
             }
         }
 

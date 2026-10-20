@@ -82,3 +82,50 @@ bool Scene::raycastStatic(const glm::vec3& origin, const glm::vec3& direction, f
 
     return hit;
 }
+
+void Scene::addTarget(Model* model, const Transform& transform, const Material& material) {
+    SceneObject object{};
+    object.model = model;
+    object.transform = transform;
+    object.material = material;
+    object.isTarget = true;
+
+    objects.push_back(object);
+
+    AABB bounds{};
+    bounds.minimum = transform.position - transform.scale * 0.5f;
+    bounds.maximum = transform.position + transform.scale * 0.5f;
+
+    addStaticCollider(bounds);
+}
+
+bool Scene::shootTarget(const glm::vec3& origin, const glm::vec3& direction, float maxDistance) {
+    float closestDistance = maxDistance;
+    raycastStatic(origin, direction, maxDistance, closestDistance);
+
+    SceneObject* hitTarget = nullptr;
+
+    for (SceneObject& object : objects) {
+        if (!object.isTarget) {
+            continue;
+        }
+
+        AABB bounds{};
+        bounds.minimum = object.transform.position - object.transform.scale * 0.5f;
+        bounds.maximum = object.transform.position + object.transform.scale * 0.5f;
+
+        float distance = 0.0f;
+
+        if (bounds.intersectRay(origin, direction, closestDistance, distance)) {
+            closestDistance = distance;
+            hitTarget = &object;
+        }
+    }
+
+    if (hitTarget == nullptr) {
+        return false;
+    }
+
+    hitTarget->material.baseColor = glm::vec4(0.2f, 1.0f, 0.2f, 1.0f);
+    return true;
+}
