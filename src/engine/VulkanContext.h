@@ -109,6 +109,8 @@ private:
     void createArena();
 
     void cleanupDepthResources();
+
+    void updateGameTitle();
     
 private:
     Camera camera;

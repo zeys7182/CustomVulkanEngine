@@ -6,6 +6,7 @@
 #include <vector>
 #include "Transform.h"
 #include "AABB.h"
+#include <cstddef>
 
 class Model;
 
@@ -15,6 +16,8 @@ struct SceneObject {
     Material material{};
     glm::vec3 angularVelocityDegrees{0.0f};
     bool isTarget = false;
+    bool wasHit = false;
+    glm::vec4 initialTargetColor{1.0f};
 };
 
 class Scene {
@@ -31,6 +34,10 @@ public:
 
     void addTarget(Model* model, const Transform& transform, const Material& material);
     bool shootTarget(const glm::vec3& origin, const glm::vec3& direction, float maxDistance);
+
+    std::size_t getTargetCount() const;
+    std::size_t getHitTargetCount() const;
+    void resetTargets();
 
 private:
     std::vector<SceneObject> objects;

@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
+#include <string>
 
 namespace {
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -928,11 +929,13 @@ void VulkanContext::createScene() {
     Material targetMaterial{};
     targetMaterial.baseColor = glm::vec4(1.0f, 0.15f, 0.15f, 1.0f);
 
-    Transform targetTransform{};
-    targetTransform.position = glm::vec3(0.0f, -0.15f, -4.0f);
-    targetTransform.scale = glm::vec3(1.0f, 1.5f, 0.3f);
+    for (float x : {-2.0f, 0.0f, 2.0f}) {
+        Transform targetTransform{};
+        targetTransform.position = glm::vec3(x, -0.15f, -4.0f);
+        targetTransform.scale = glm::vec3(1.0f, 1.5f, 0.3f);
 
-    scene.addTarget(model.get(), targetTransform, targetMaterial);
+        scene.addTarget(model.get(), targetTransform, targetMaterial);
+    }
 }
 
 void VulkanContext::framebufferResizeCallback(GLFWwindow* window, int, int) {
@@ -1179,8 +1182,26 @@ void VulkanContext::setupDebugMessenger() {
     }
 }
 
+void VulkanContext::updateGameTitle() {
+    const std::size_t hitCount = scene.getHitTargetCount();
+    const std::size_t targetCount = scene.getTargetCount();
+
+    std::string title = "My Vulkan Engine | Targets: " + std::to_string(hitCount) + "/" + std::to_string(targetCount);
+
+    if (targetCount > 0 && hitCount == targetCount) {
+        title += " | Complete! Press R to restart";
+    } else {
+        title += " | LMB: shoot | R: reset";
+    }
+
+    glfwSetWindowTitle(window, title.c_str());
+}
+
 void VulkanContext::mainLoop() {
     bool wasShootPressed = false;
+    bool wasResetPressed = false;
+
+    updateGameTitle();
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
@@ -1210,18 +1231,29 @@ void VulkanContext::mainLoop() {
 
         scene.update(deltaTime);
 
+       const bool resetPressed = glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS;
+
+        if (resetPressed && !wasResetPressed) {
+            scene.resetTargets();
+            updateGameTitle();
+            std::cout << "Targets reset\n";
+        }
+
+        wasResetPressed = resetPressed;
+
         const bool shootPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
 
-        if (shootPressed && !wasShootPressed) {
+        if (shootPressed && !wasShootPressed && !resetPressed) {
             if (scene.shootTarget(camera.getPosition(), camera.getFront(), 30.0f)) {
-                std::cout << "Target hit\n";
+                updateGameTitle();
+                std::cout << "Target hit: " << scene.getHitTargetCount() << "/" << scene.getTargetCount() << '\n';
             } else {
-                std::cout << "No target hit\n";
+                std::cout << "No new target hit\n";
             }
         }
 
         wasShootPressed = shootPressed;
-
+        
         if (vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
             throw std::runtime_error("Failed to wait for fence");
         }
@@ -1295,7 +1327,7 @@ void VulkanContext::mainLoop() {
 
         if (presentResult != VK_SUCCESS) throw std::runtime_error("Failed to present swapchain image");
     }
-}
+} 
 
 void VulkanContext::cleanup() {
     if (device != VK_NULL_HANDLE) vkDeviceWaitIdle(device);

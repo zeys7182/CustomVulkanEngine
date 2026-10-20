@@ -89,6 +89,7 @@ void Scene::addTarget(Model* model, const Transform& transform, const Material& 
     object.transform = transform;
     object.material = material;
     object.isTarget = true;
+    object.initialTargetColor = material.baseColor;
 
     objects.push_back(object);
 
@@ -122,10 +123,44 @@ bool Scene::shootTarget(const glm::vec3& origin, const glm::vec3& direction, flo
         }
     }
 
-    if (hitTarget == nullptr) {
+    if (hitTarget == nullptr || hitTarget->wasHit) {
         return false;
     }
 
+    hitTarget->wasHit = true;
     hitTarget->material.baseColor = glm::vec4(0.2f, 1.0f, 0.2f, 1.0f);
     return true;
+}
+
+std::size_t Scene::getTargetCount() const {
+    std::size_t count = 0;
+
+    for (const SceneObject& object : objects) {
+        if (object.isTarget) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+std::size_t Scene::getHitTargetCount() const {
+    std::size_t count = 0;
+
+    for (const SceneObject& object : objects) {
+        if (object.isTarget && object.wasHit) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+void Scene::resetTargets() {
+    for (SceneObject& object : objects) {
+        if (object.isTarget) {
+            object.wasHit = false;
+            object.material.baseColor = object.initialTargetColor;
+        }
+    }
 }
