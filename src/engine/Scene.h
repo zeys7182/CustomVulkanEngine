@@ -26,6 +26,7 @@ public:
 
     void addStaticCollider(const AABB& collider);
     glm::vec3 resolveMovement(const glm::vec3& center, const glm::vec3& halfExtents, const glm::vec3& displacement) const;
+    bool raycastStatic(const glm::vec3& origin, const glm::vec3& direction, float maxDistance, float& hitDistance) const;
 
 private:
     std::vector<SceneObject> objects;

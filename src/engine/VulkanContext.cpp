@@ -870,6 +870,16 @@ void VulkanContext::createArena() {
     rightWall.position = glm::vec3(5.0f, 0.6f, 0.0f);
     rightWall.scale = glm::vec3(0.2f, 3.0f, 10.0f);
     scene.addObject(model.get(), rightWall, wallMaterial);
+
+    const std::array<Transform, 4> wallTransforms = {backWall, frontWall, leftWall, rightWall};
+
+    for (const Transform& wallTransform : wallTransforms) {
+        AABB wallBounds{};
+        wallBounds.minimum = wallTransform.position - wallTransform.scale * 0.5f;
+        wallBounds.maximum = wallTransform.position + wallTransform.scale * 0.5f;
+
+        scene.addStaticCollider(wallBounds);
+    }
 }
 
 void VulkanContext::createScene() {
@@ -1161,6 +1171,8 @@ void VulkanContext::setupDebugMessenger() {
 }
 
 void VulkanContext::mainLoop() {
+    bool wasShootPressed = false;
+
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
 
@@ -1176,7 +1188,6 @@ void VulkanContext::mainLoop() {
         const glm::vec3 previousPosition = camera.getPosition();
 
         camera.processInput(window, deltaTime);
-        camera.constrainPosition(glm::vec3(-4.65f, 0.8f, -4.65f), glm::vec3(4.65f, 0.8f, 4.65f));
 
         const glm::vec3 desiredPosition = camera.getPosition();
         const glm::vec3 displacement = desiredPosition - previousPosition;
@@ -1189,6 +1200,20 @@ void VulkanContext::mainLoop() {
         camera.setPosition(resolvedCenter - bodyOffset);
 
         scene.update(deltaTime);
+
+        const bool shootPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+
+        if (shootPressed && !wasShootPressed) {
+            float hitDistance = 0.0f;
+
+            if (scene.raycastStatic(camera.getPosition(), camera.getFront(), 30.0f, hitDistance)) {
+                std::cout << "Hit static collider at distance: " << hitDistance << '\n';
+            } else {
+                std::cout << "Miss\n";
+            }
+        }
+
+        wasShootPressed = shootPressed;
 
         if (vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
             throw std::runtime_error("Failed to wait for fence");

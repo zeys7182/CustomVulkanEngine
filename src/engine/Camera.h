@@ -11,7 +11,6 @@ public:
 
     void processInput(GLFWwindow* window, float deltaTime);
     void processMouseMovement(GLFWwindow* window);
-    void constrainPosition(const glm::vec3& minimum, const glm::vec3& maximum);
 
     glm::mat4 getViewMatrix() const;
     glm::vec3 getFront() const;

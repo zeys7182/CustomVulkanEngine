@@ -62,3 +62,23 @@ glm::vec3 Scene::resolveMovement(const glm::vec3& center, const glm::vec3& halfE
 
     return position;
 }
+
+bool Scene::raycastStatic(const glm::vec3& origin, const glm::vec3& direction, float maxDistance, float& hitDistance) const {
+    bool hit = false;
+    float closestDistance = maxDistance;
+
+    for (const AABB& collider : staticColliders) {
+        float distance = 0.0f;
+
+        if (collider.intersectRay(origin, direction, closestDistance, distance)) {
+            closestDistance = distance;
+            hit = true;
+        }
+    }
+
+    if (hit) {
+        hitDistance = closestDistance;
+    }
+
+    return hit;
+}

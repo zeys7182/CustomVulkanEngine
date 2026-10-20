@@ -30,12 +30,6 @@ void Camera::processInput(GLFWwindow* window, float deltaTime) {
     }
 }
 
-void Camera::constrainPosition(const glm::vec3& minimum, const glm::vec3& maximum) {
-    position.x = std::clamp(position.x, minimum.x, maximum.x);
-    position.y = std::clamp(position.y, minimum.y, maximum.y);
-    position.z = std::clamp(position.z, minimum.z, maximum.z);
-}
-
 void Camera::processMouseMovement(GLFWwindow* window) {
     double mouseX = 0.0;
     double mouseY = 0.0;
